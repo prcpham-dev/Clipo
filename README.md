@@ -1,5 +1,4 @@
-# watch - Video Picture-in-Picture Extension
-
+# <img src="assets/icon.png" width="40" alt="Clipo"> Clipo 
 Keep watching videos while you work, browse, or multitask!
 
 ## How to use
