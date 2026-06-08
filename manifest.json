@@ -13,7 +13,7 @@
       }
    },
    "background": {
-      "service_worker": "background.js"
+      "service_worker": "src/background.js"
    },
    "commands": {
       "_execute_action": {
@@ -37,7 +37,7 @@
             "<all_urls>"
          ],
          "js": [
-            "content.js"
+            "src/content.js"
          ],
          "all_frames": true
       }
