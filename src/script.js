@@ -1,10 +1,17 @@
-const findVideo = () =>
-  [...document.querySelectorAll('video')]
-    .filter(v => v.readyState && !v.disablePictureInPicture)
+const findVideo = () => {
+  const videos = [...document.querySelectorAll('video')];
+  videos.forEach(v => {
+    if (v.disablePictureInPicture) {
+      v.disablePictureInPicture = false;
+    }
+  });
+  return videos
+    .filter(v => v.readyState)
     .sort((a, b) => {
       const area = el => { const r = el.getClientRects()[0]; return r ? r.width * r.height : 0; };
       return area(b) - area(a);
     })[0] ?? null;
+};
 
 const enterPip = async (video) => {
   await video.requestPictureInPicture();
