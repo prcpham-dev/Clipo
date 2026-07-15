@@ -40,8 +40,8 @@ function injectButtons() {
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
         z-index: 2147483647;
         transition: all 0.25s ease;
-        display: none;
-        pointer-events: auto;
+        opacity: 0;
+        pointer-events: none;
       `;
       btn.addEventListener('mouseover', () => {
         btn.style.background = 'rgba(0, 0, 0, 0.7)';
@@ -66,14 +66,34 @@ function injectButtons() {
         }
       });
 
+      let hideTimeout = null;
+      const resetHideTimeout = () => {
+        if (hideTimeout) {
+          clearTimeout(hideTimeout);
+        }
+        hideTimeout = setTimeout(() => {
+          hideBtn();
+        }, 2000);
+      };
+
       const showBtn = () => {
         if (window.location.hostname.includes('netflix.com') && document.querySelector('[data-uia="control-audio-subtitle"]')) {
-          btn.style.display = 'none';
+          btn.style.opacity = '0';
+          btn.style.pointerEvents = 'none';
           return;
         }
-        btn.style.display = 'block';
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+        resetHideTimeout();
       };
-      const hideBtn = () => { btn.style.display = 'none'; };
+      const hideBtn = () => {
+        if (hideTimeout) {
+          clearTimeout(hideTimeout);
+          hideTimeout = null;
+        }
+        btn.style.opacity = '0';
+        btn.style.pointerEvents = 'none';
+      };
 
       hoverTarget.addEventListener('mouseenter', showBtn);
       hoverTarget.addEventListener('mouseleave', hideBtn);
