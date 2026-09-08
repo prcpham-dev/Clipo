@@ -30,7 +30,7 @@ function injectButtons() {
         top: 16px;
         right: 16px;
         padding: 0.5em;
-        cursor: pointer;
+        cursor: grab;
         border: 1px solid rgba(255, 255, 255, 0.5);
         border-radius: 50%;
         background: rgba(0, 0, 0, 0.4);
@@ -39,22 +39,149 @@ function injectButtons() {
         color: #ffffff;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
         z-index: 2147483647;
-        transition: all 0.25s ease;
+        transition: transform 0.25s ease, background 0.25s ease, opacity 0.25s ease;
         opacity: 0;
         pointer-events: none;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: none;
       `;
       btn.addEventListener('mouseover', () => {
         btn.style.background = 'rgba(0, 0, 0, 0.7)';
         btn.style.transform = 'scale(1.1)';
       });
       btn.addEventListener('mouseout', () => {
-        btn.style.background = 'rgba(0, 0, 0, 0.4)';
-        btn.style.transform = 'scale(1)';
+        if (!isDragging) {
+          btn.style.background = 'rgba(0, 0, 0, 0.4)';
+          btn.style.transform = 'scale(1)';
+        }
       });
+
+      let isDragging = false;
+      let hasDragged = false;
+      let startX = 0;
+      let startY = 0;
+      let initialLeft = 0;
+      let initialTop = 0;
+
+      btn.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        isDragging = true;
+        hasDragged = false;
+        startX = e.clientX;
+        startY = e.clientY;
+
+        const btnRect = btn.getBoundingClientRect();
+        const containerRect = hoverTarget.getBoundingClientRect();
+
+        initialLeft = btnRect.left - containerRect.left;
+        initialTop = btnRect.top - containerRect.top;
+
+        btn.style.transition = 'transform 0.25s ease, background 0.25s ease, opacity 0.25s ease';
+        btn.style.left = `${initialLeft}px`;
+        btn.style.top = `${initialTop}px`;
+        btn.style.right = 'auto';
+        btn.style.cursor = 'grabbing';
+        btn.setPointerCapture(e.pointerId);
+
+        if (hideTimeout) {
+          clearTimeout(hideTimeout);
+          hideTimeout = null;
+        }
+      });
+
+      btn.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        if (!hasDragged && Math.hypot(dx, dy) > 4) {
+          hasDragged = true;
+        }
+
+        if (hasDragged) {
+          const containerWidth = hoverTarget.clientWidth;
+          const containerHeight = hoverTarget.clientHeight;
+          const btnWidth = btn.offsetWidth;
+          const btnHeight = btn.offsetHeight;
+
+          let newLeft = initialLeft + dx;
+          let newTop = initialTop + dy;
+
+          newLeft = Math.max(0, Math.min(containerWidth - btnWidth, newLeft));
+          newTop = Math.max(0, Math.min(containerHeight - btnHeight, newTop));
+
+          btn.style.left = `${newLeft}px`;
+          btn.style.top = `${newTop}px`;
+          btn.style.right = 'auto';
+        }
+      });
+
+      const handlePointerEnd = (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        btn.style.cursor = 'grab';
+
+        try {
+          btn.releasePointerCapture(e.pointerId);
+        } catch (_) {}
+
+        if (hasDragged) {
+          const MARGIN = 16;
+          const containerWidth = hoverTarget.clientWidth;
+          const containerHeight = hoverTarget.clientHeight;
+          const btnWidth = btn.offsetWidth;
+          const btnHeight = btn.offsetHeight;
+
+          const currentLeft = parseFloat(btn.style.left) || 0;
+          const currentTop = parseFloat(btn.style.top) || MARGIN;
+
+          const centerX = currentLeft + btnWidth / 2;
+          const isCloserToLeft = centerX < containerWidth / 2;
+
+          const snapTop = Math.max(MARGIN, Math.min(containerHeight - btnHeight - MARGIN, currentTop));
+
+          btn.style.transition = 'left 0.8s cubic-bezier(0.1, 0.8, 0.2, 1), right 0.8s cubic-bezier(0.1, 0.8, 0.2, 1), top 0.8s cubic-bezier(0.1, 0.8, 0.2, 1), transform 0.25s ease, background 0.25s ease, opacity 0.25s ease';
+
+          btn.style.top = `${snapTop}px`;
+          btn.style.right = 'auto';
+
+          if (isCloserToLeft) {
+            btn.style.left = `${MARGIN}px`;
+          } else {
+            const targetLeft = Math.max(MARGIN, containerWidth - btnWidth - MARGIN);
+            btn.style.left = `${targetLeft}px`;
+          }
+
+          setTimeout(() => {
+            if (!isDragging) {
+              btn.style.transition = 'transform 0.25s ease, background 0.25s ease, opacity 0.25s ease';
+              if (!isCloserToLeft) {
+                btn.style.left = 'auto';
+                btn.style.right = `${MARGIN}px`;
+              }
+            }
+          }, 850);
+        }
+
+        resetHideTimeout();
+      };
+
+      btn.addEventListener('pointerup', handlePointerEnd);
+      btn.addEventListener('pointercancel', handlePointerEnd);
 
       btn.addEventListener('click', async (e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (hasDragged) {
+          return;
+        }
         try {
           if (document.pictureInPictureElement === video) {
             await document.exitPictureInPicture();
@@ -68,6 +195,7 @@ function injectButtons() {
 
       let hideTimeout = null;
       const resetHideTimeout = () => {
+        if (isDragging) return;
         if (hideTimeout) {
           clearTimeout(hideTimeout);
         }
@@ -87,6 +215,7 @@ function injectButtons() {
         resetHideTimeout();
       };
       const hideBtn = () => {
+        if (isDragging) return;
         if (hideTimeout) {
           clearTimeout(hideTimeout);
           hideTimeout = null;
@@ -107,6 +236,14 @@ function injectButtons() {
           const nextBtn = document.querySelector('.ytp-next-button');
           if (nextBtn) nextBtn.click();
         }
+      });
+
+      // Reset position when a new video loads in the same element
+      video.addEventListener('loadstart', () => {
+        btn.style.transition = 'transform 0.25s ease, background 0.25s ease, opacity 0.25s ease';
+        btn.style.top = '16px';
+        btn.style.right = '16px';
+        btn.style.left = 'auto';
       });
 
       // Ensure the container is positioned relatively so absolute offset works
