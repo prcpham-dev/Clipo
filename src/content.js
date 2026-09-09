@@ -74,11 +74,8 @@ function injectButtons() {
         startX = e.clientX;
         startY = e.clientY;
 
-        const btnRect = btn.getBoundingClientRect();
-        const containerRect = hoverTarget.getBoundingClientRect();
-
-        initialLeft = btnRect.left - containerRect.left;
-        initialTop = btnRect.top - containerRect.top;
+        initialLeft = btn.offsetLeft;
+        initialTop = btn.offsetTop;
 
         btn.style.transition = 'transform 0.25s ease, background 0.25s ease, opacity 0.25s ease';
         btn.style.left = `${initialLeft}px`;
@@ -106,8 +103,9 @@ function injectButtons() {
         }
 
         if (hasDragged) {
-          const containerWidth = hoverTarget.clientWidth;
-          const containerHeight = hoverTarget.clientHeight;
+          const offsetParent = btn.offsetParent || hoverTarget;
+          const containerWidth = offsetParent.clientWidth;
+          const containerHeight = offsetParent.clientHeight;
           const btnWidth = btn.offsetWidth;
           const btnHeight = btn.offsetHeight;
 
@@ -134,8 +132,9 @@ function injectButtons() {
 
         if (hasDragged) {
           const MARGIN = 16;
-          const containerWidth = hoverTarget.clientWidth;
-          const containerHeight = hoverTarget.clientHeight;
+          const offsetParent = btn.offsetParent || hoverTarget;
+          const containerWidth = offsetParent.clientWidth;
+          const containerHeight = offsetParent.clientHeight;
           const btnWidth = btn.offsetWidth;
           const btnHeight = btn.offsetHeight;
 
